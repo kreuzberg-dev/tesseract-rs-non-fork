@@ -9,9 +9,9 @@ mod build_tesseract {
 
     // Use specific release versions for stability
     const LEPTONICA_URL: &str =
-        "https://github.com/DanBloomberg/leptonica/archive/refs/tags/1.84.1.zip";
+        "https://github.com/DanBloomberg/leptonica/archive/refs/tags/1.86.0.zip";
     const TESSERACT_URL: &str =
-        "https://github.com/tesseract-ocr/tesseract/archive/refs/tags/5.3.4.zip";
+        "https://github.com/tesseract-ocr/tesseract/archive/refs/tags/5.5.1.zip";
 
     fn get_custom_out_dir() -> PathBuf {
         if cfg!(target_os = "macos") {
