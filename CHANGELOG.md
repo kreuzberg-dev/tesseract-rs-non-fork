@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive unit tests for error handling and enums
 - Benchmark tests using criterion
 - Code coverage reporting with tarpaulin
-- Commit message standards (Conventional Commits) 
+- Commit message standards (Conventional Commits)
 - Pre-commit hooks with Husky for code quality
 - CI/CD pipeline with clippy, rustfmt, and security audit
 - Contributing guidelines

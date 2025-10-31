@@ -1,37 +1,37 @@
 #!/bin/bash
 
-# Setup script for tesseract-rs development environment
+set -euo pipefail
 
 echo "Setting up tesseract-rs development environment..."
 
-# Check if Node.js is installed
-if ! command -v node &> /dev/null; then
-    echo "❌ Node.js is not installed. Please install Node.js to use commit hooks."
-    echo "   Visit: https://nodejs.org/"
+ensure_prek() {
+    if command -v prek >/dev/null 2>&1; then
+        return
+    fi
+
+    if command -v uv >/dev/null 2>&1; then
+        echo "Installing prek using uv..."
+        uv tool install prek
+        return
+    fi
+
+    cat <<'EOF'
+❌ Could not find the `prek` command.
+
+Install it manually, for example:
+  uv tool install prek
+or see https://github.com/j178/prek for alternative installation methods.
+EOF
     exit 1
-fi
+}
 
-# Check if npm is installed
-if ! command -v npm &> /dev/null; then
-    echo "❌ npm is not installed. Please install npm."
-    exit 1
-fi
+ensure_prek
 
-echo "✅ Node.js and npm are installed"
+echo "Installing pre-commit hooks via prek..."
+prek install
+prek install --hook-type commit-msg
 
-# Install dependencies
-echo "Installing Node.js dependencies..."
-npm install
-
-# Setup husky
-echo "Setting up Git hooks..."
-npx husky install
-
-# Make hooks executable
-chmod +x .husky/commit-msg
-chmod +x .husky/pre-commit
-
-echo "✅ Git hooks installed successfully!"
+echo "✅ Prek hooks installed successfully!"
 echo ""
 echo "Commit message format:"
 echo "  <type>[optional scope]: <description>"
