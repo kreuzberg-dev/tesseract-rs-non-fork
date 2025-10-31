@@ -37,6 +37,10 @@ To build this crate, you need:
 - Internet connection (for downloading Tesseract training data)
 - Rust 1.83.0 or later
 
+### Optional tooling
+
+- [sccache](https://github.com/mozilla/sccache) (set `RUSTC_WRAPPER=sccache` to speed up local rebuilds)
+
 ## Environment Variables
 
 The following environment variables affect the build and test process:
