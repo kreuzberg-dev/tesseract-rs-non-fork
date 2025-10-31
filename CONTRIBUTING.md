@@ -73,19 +73,14 @@ The footer should contain any information about Breaking Changes and is also the
 
 ## Setting Up Commit Hooks
 
-We use Husky to enforce code quality and commit message standards. To set up the hooks:
+We use [Prek](https://github.com/j178/prek) to manage pre-commit and commit-msg hooks. Prek gives us the same validation locally that CI performs.
 
-1. Install Node.js if you haven't already
-2. Run `./setup-hooks.sh` or `npm install` in the project root
-3. The pre-commit and commit-msg hooks will be automatically installed
+1. Install [uv](https://docs.astral.sh/uv/) if you don't already have it.
+2. Run `./setup-hooks.sh` to install Prek and the git hooks.
 
-The hooks will:
-- **Pre-commit**: Check code formatting (rustfmt) and run clippy before allowing commits
-- **Commit-msg**: Validate commit messages against our conventional commit format
+This will install a `commit-msg` hook enforcing Conventional Commits and a `pre-commit` hook that runs the same checks as `prek run --all-files` (formatting, clippy, Cargo checks, etc.).
 
-If pre-commit checks fail:
-- Run `cargo fmt` to fix formatting issues
-- Run `cargo clippy` to see warnings and fix them
+If checks fail locally, fix the issues and re-run `prek run --all-files`.
 
 ## Pull Request Process
 
@@ -104,8 +99,8 @@ If pre-commit checks fail:
 3. Install build dependencies:
    - CMake
    - C++ compiler
-   - Node.js (for commit hooks)
-4. Run `npm install` to set up commit hooks
+   - Prek (via `uv tool install prek`) for git hooks
+4. Run `prek install && prek install --hook-type commit-msg` or execute `./setup-hooks.sh`
 5. Run `cargo build` to ensure everything compiles
 6. Run `cargo test` to run the test suite
 
