@@ -1,7 +1,7 @@
 use image::{DynamicImage, ImageBuffer, Luma};
 use imageproc::contrast::adaptive_threshold;
 use imageproc::filter::filter3x3;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tesseract_rs::{TessOrientation, TessPageIteratorLevel, TessWritingDirection, TesseractAPI};
 
 fn get_default_tessdata_dir() -> PathBuf {
@@ -647,9 +647,7 @@ fn test_iterators_provide_word_metadata() {
     }
 
     assert!(
-        words
-            .iter()
-            .any(|word| word.eq_ignore_ascii_case("This")),
+        words.iter().any(|word| word.eq_ignore_ascii_case("This")),
         "Expected to capture known words, got {:?}",
         words
     );
@@ -707,4 +705,172 @@ fn test_result_iterator_numeric_detection() {
     }
 
     assert!(saw_numeric, "Expected numeric words in digits image");
+}
+
+#[test]
+fn test_language_and_confidence_helpers() {
+    let tessdata_dir = get_tessdata_dir();
+    let api = TesseractAPI::new();
+    api.init(tessdata_dir.to_str().unwrap(), "eng")
+        .expect("Failed to initialize Tesseract");
+
+    let (image_data, width, height) =
+        load_test_image("sample_text.png").expect("Failed to load test image");
+    api.set_image(
+        &image_data,
+        width as i32,
+        height as i32,
+        3,
+        3 * width as i32,
+    )
+    .expect("Failed to set image");
+    api.recognize().expect("Recognition failed");
+    let full_text = api.get_utf8_text().expect("Failed to get full OCR output");
+
+    assert!(
+        full_text.contains("sample text"),
+        "Unexpected OCR output: {}",
+        full_text
+    );
+
+    let word_confidences = api
+        .get_word_confidences()
+        .expect("Failed to gather word confidences");
+    assert!(
+        !word_confidences.is_empty(),
+        "Expected confidences for recognized words"
+    );
+    assert!(word_confidences.iter().all(|&c| (0..=100).contains(&c)));
+
+    let all_confidences = api
+        .all_word_confidences()
+        .expect("Failed to gather all word confidences");
+    assert_eq!(
+        word_confidences.len(),
+        all_confidences.len(),
+        "Different confidence lengths"
+    );
+
+    let mean_conf = api.mean_text_conf().expect("Failed to get mean confidence");
+    assert!((0..=100).contains(&mean_conf));
+
+    let loaded = api
+        .get_loaded_languages()
+        .expect("Failed to query loaded languages");
+    assert!(
+        loaded.iter().any(|lang| lang == "eng"),
+        "Expected 'eng' in loaded languages: {:?}",
+        loaded
+    );
+
+    let available = api
+        .get_available_languages()
+        .expect("Failed to query available languages");
+    assert!(
+        available.iter().any(|lang| lang == "eng"),
+        "Expected 'eng' to be available: {:?}",
+        available
+    );
+    assert!(
+        available.iter().any(|lang| lang == "tur"),
+        "Expected 'tur' to be available: {:?}",
+        available
+    );
+
+    let init_langs = api
+        .get_init_languages_as_string()
+        .expect("Failed to fetch initialized languages");
+    assert!(
+        init_langs.contains("eng"),
+        "Initialized languages missing 'eng': {}",
+        init_langs
+    );
+
+    let datapath = api.get_datapath().expect("Failed to fetch datapath");
+    assert!(
+        Path::new(&datapath).exists(),
+        "Datapath does not exist: {}",
+        datapath
+    );
+
+    api.set_input_name("sample_text.png")
+        .expect("Failed to set input name");
+    let input_name = api
+        .get_input_name()
+        .expect("Failed to read back input name");
+    assert!(
+        input_name.ends_with("sample_text.png"),
+        "Input name mismatch: {}",
+        input_name
+    );
+
+    api.clear_adaptive_classifier()
+        .expect("Failed to clear adaptive classifier");
+}
+
+#[test]
+fn test_structured_outputs_and_rectangles() {
+    let tessdata_dir = get_tessdata_dir();
+    let api = TesseractAPI::new();
+    api.init(tessdata_dir.to_str().unwrap(), "eng")
+        .expect("Failed to initialize Tesseract");
+
+    let (image_data, width, height) =
+        load_test_image("sample_text.png").expect("Failed to load test image");
+    api.set_image(
+        &image_data,
+        width as i32,
+        height as i32,
+        3,
+        3 * width as i32,
+    )
+    .expect("Failed to set image");
+    api.recognize().expect("Recognition failed");
+    let full_text = api
+        .get_utf8_text()
+        .expect("Failed to get full OCR output for rectangle comparison");
+
+    let hocr = api.get_hocr_text(0).expect("Failed to get hOCR output");
+    assert!(
+        hocr.contains("ocr_page"),
+        "hOCR output missing expected marker"
+    );
+
+    let tsv = api.get_tsv_text(0).expect("Failed to get TSV output");
+    assert!(
+        tsv.contains('\t'),
+        "TSV output missing expected tab separation: {}",
+        tsv
+    );
+
+    let unlv = api.get_unlv_text().expect("Failed to get UNLV output");
+    assert!(
+        unlv.to_lowercase().contains("sample"),
+        "UNLV output missing text content: {}",
+        unlv
+    );
+
+    let api_with_rect = TesseractAPI::new();
+    api_with_rect
+        .init(tessdata_dir.to_str().unwrap(), "eng")
+        .expect("Failed to initialize API for rectangle test");
+    api_with_rect
+        .set_image(
+            &image_data,
+            width as i32,
+            height as i32,
+            3,
+            3 * width as i32,
+        )
+        .expect("Failed to set image for rectangle test");
+    api_with_rect
+        .set_rectangle(0, 0, (width / 2) as i32, height as i32)
+        .expect("Failed to set rectangle");
+    let partial_text = api_with_rect
+        .get_utf8_text()
+        .expect("Failed to run OCR on rectangle");
+    assert!(
+        partial_text.len() < full_text.len(),
+        "Rectangle-based recognition should reduce extracted text"
+    );
 }
