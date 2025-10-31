@@ -1,9 +1,13 @@
-name: Rust
+name: CI
+
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - master
   pull_request:
-    branches: [ "master" ]
+    branches:
+      - master
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -13,197 +17,194 @@ permissions:
   contents: read
 
 jobs:
-  # Run clippy and rustfmt checks
   lint:
+    name: Lint & Audit
     runs-on: ubuntu-latest
+    env:
+      RUSTC_WRAPPER: ""
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        components: rustfmt, clippy
-    
-    - name: Cache cargo dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          ~/.cargo/bin
-          target
-        key: ${{ runner.os }}-cargo-lint-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-lint-
-    
-    - name: Check formatting
-      run: cargo fmt -- --check
-    
-    - name: Run clippy
-      run: cargo clippy -- -D warnings
-      env:
-        RUSTC_WRAPPER: ""
-    
-    - name: Install cargo-audit
-      run: |
-        if ! command -v cargo-audit &> /dev/null; then
-          cargo install cargo-audit
-        fi
-      env:
-        RUSTC_WRAPPER: ""
-    
-    - name: Run security audit
-      run: cargo audit || true  # Allow audit to fail for now due to transitive dependencies
-      
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo artifacts
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-lint-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-lint-
+
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Install cargo-audit
+        run: |
+          if ! command -v cargo-audit >/dev/null 2>&1; then
+            cargo install cargo-audit
+          fi
+
+      - name: cargo audit
+        run: cargo audit
+        continue-on-error: true
+
   build:
+    name: Build & Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    needs: lint
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    
+        os:
+          - ubuntu-22.04
+          - ubuntu-latest
+          - macos-13
+          - macos-latest
+          - windows-latest
+    env:
+      RUSTC_WRAPPER: ""
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-      
-    - name: Install dependencies (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
-        choco install visualstudio2022buildtools
-        choco install visualstudio2022-workload-vctools
-    
-    - name: Install dependencies (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y cmake build-essential
-    
-    - name: Install dependencies (macOS)
-      if: matrix.os == 'macos-latest'
-      run: |
-        brew install cmake
-    
-    # Skip sccache for now to avoid issues
-    # - name: Install sccache
-    #   run: cargo install sccache
-    
-    - name: Cache cargo dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-
-    
-    - name: Cache build artifacts
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/Library/Application Support/tesseract-rs
-          ~/.tesseract-rs
-          ~/AppData/Roaming/tesseract-rs
-          C:\Users\runneradmin\AppData\Roaming\tesseract-rs
-        key: ${{ runner.os }}-tesseract-build-${{ hashFiles('build.rs') }}
-        restore-keys: |
-          ${{ runner.os }}-tesseract-build-
-    
-    - name: Setup MSVC environment (Windows)
-      if: matrix.os == 'windows-latest'
-      uses: ilammy/msvc-dev-cmd@v1
-    
-    - name: Fix Windows linking (Rename Git's link.exe)
-      if: matrix.os == 'windows-latest'
-      shell: pwsh
-      run: |
-        # Rename Git's link.exe to avoid conflicts with MSVC
-        $gitLinkPath = "C:\Program Files\Git\usr\bin\link.exe"
-        if (Test-Path $gitLinkPath) {
-          Rename-Item $gitLinkPath -NewName "link_git.exe" -Force
-          echo "Renamed Git's link.exe to link_git.exe"
-        }
-      
-    - name: Build (Unix)
-      if: matrix.os != 'windows-latest'
-      run: cargo build --verbose
-      shell: bash
-      env:
-        RUSTC_WRAPPER: ""
-    
-    - name: Build (Windows)
-      if: matrix.os == 'windows-latest'
-      run: cargo build --verbose
-      shell: pwsh
-      env:
-        RUSTC_WRAPPER: ""
-      
-    - name: Run tests (Unix)
-      if: matrix.os != 'windows-latest'
-      run: cargo test --verbose
-      shell: bash
-      env:
-        RUST_LOG: debug
-        RUSTC_WRAPPER: ""
-    
-    - name: Run tests (Windows)
-      if: matrix.os == 'windows-latest'
-      run: cargo test --verbose
-      shell: pwsh
-      env:
-        RUST_LOG: debug
-        RUSTC_WRAPPER: ""
-    
-  coverage:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-    
-    - name: Cache cargo dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          ~/.cargo/bin
-          target
-        key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-coverage-
-    
-    - name: Cache build artifacts
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.tesseract-rs
-        key: ${{ runner.os }}-tesseract-coverage-${{ hashFiles('build.rs') }}
-        restore-keys: |
-          ${{ runner.os }}-tesseract-coverage-
-    
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y cmake build-essential
-    
-    - name: Install tarpaulin
-      run: |
-        if ! command -v cargo-tarpaulin &> /dev/null; then
-          cargo install cargo-tarpaulin
-        fi
-    
-    - name: Generate coverage report
-      run: cargo tarpaulin --out xml --ignore-tests --timeout 300
-      env:
-        RUSTC_WRAPPER: ""
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./cobertura.xml
-        fail_ci_if_error: false
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          profile: minimal
+
+      - name: Install dependencies (Ubuntu)
+        if: startsWith(matrix.os, 'ubuntu')
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build pkg-config clang
+
+      - name: Install dependencies (macOS)
+        if: startsWith(matrix.os, 'macos')
+        shell: bash
+        run: |
+          brew install cmake ninja pkg-config
+
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' --no-progress -y
+          choco install ninja --no-progress -y
+          choco install visualstudio2022buildtools --no-progress -y
+          choco install visualstudio2022-workload-vctools --no-progress -y
+
+      - name: Cache Cargo artifacts
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Determine Tesseract cache path (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: echo "TESSERACT_CACHE=$HOME/.tesseract-rs" >> "$GITHUB_ENV"
+
+      - name: Determine Tesseract cache path (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: printf 'TESSERACT_CACHE=%s\n' "$HOME/Library/Application Support/tesseract-rs" >> "$GITHUB_ENV"
+
+      - name: Determine Tesseract cache path (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $path = Join-Path $Env:APPDATA 'tesseract-rs'
+          echo "TESSERACT_CACHE=$path" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Cache Tesseract builds
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.TESSERACT_CACHE }}
+          key: ${{ runner.os }}-tesseract-${{ hashFiles('build.rs') }}
+          restore-keys: |
+            ${{ runner.os }}-tesseract-
+
+      - name: Setup MSVC environment
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Fix Windows link.exe conflict
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $gitLinkPath = "C:\Program Files\Git\usr\bin\link.exe"
+          if (Test-Path $gitLinkPath) {
+            Rename-Item $gitLinkPath -NewName "link_git.exe" -Force
+          }
+
+      - name: cargo build (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: cargo build --all-features --all-targets --verbose
+
+      - name: cargo build (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: cargo build --all-features --all-targets --verbose
+
+      - name: cargo test (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: cargo test --all-features --verbose
+        env:
+          RUST_LOG: debug
+
+      - name: cargo test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $Env:RUST_LOG = 'debug'
+          cargo test --all-features --verbose
+
+      - name: Consumer smoke test (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cargo new --bin consumer-smoke --vcs none
+          echo 'tesseract-rs = { path = "..", features = ["build-tesseract"] }' >> consumer-smoke/Cargo.toml
+          cat <<'EOF' > consumer-smoke/src/main.rs
+          fn main() {
+              let version = tesseract_rs::TesseractAPI::version();
+              println!("{version}");
+          }
+          EOF
+          (cd consumer-smoke && cargo run --quiet)
+
+      - name: Consumer smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          cargo new --bin consumer-smoke --vcs none
+          Add-Content -Path consumer-smoke/Cargo.toml -Value 'tesseract-rs = { path = "..", features = ["build-tesseract"] }'
+          @'
+          fn main() {
+              let version = tesseract_rs::TesseractAPI::version();
+              println!("{version}");
+          }
+          '@ | Set-Content -Path consumer-smoke/src/main.rs
+          Push-Location consumer-smoke
+          cargo run --quiet
+          Pop-Location
