@@ -10,7 +10,6 @@ mod build_tesseract {
     // Use specific release versions for stability
     const LEPTONICA_VERSION: &str = "1.86.0";
     const TESSERACT_VERSION: &str = "5.5.1";
-    const TESSERACT_LIB_VERSION: &str = "55"; // Major + minor version for Windows lib naming
 
     fn leptonica_url() -> String {
         format!(
@@ -533,19 +532,22 @@ mod build_tesseract {
         fs::create_dir_all(cache_dir).expect("Failed to create cache directory");
         fs::create_dir_all(out_path.parent().unwrap()).expect("Failed to create output directory");
 
-        if cached_path.exists() {
+        // Determine which library name to use for linking
+        let link_name_to_use = if cached_path.exists() {
             println!("Using cached {} library", name);
             if let Err(e) = fs::copy(&cached_path, &out_path) {
                 println!("cargo:warning=Failed to copy cached library: {}", e);
                 // If cache copy fails, rebuild
                 build_fn();
             }
+            // Use generic name for cached libraries
+            name.to_string()
         } else {
             println!("Building {} library", name);
             build_fn();
 
             // Look for the library with various possible names
-            let mut found_lib_path = None;
+            let mut found_lib_name = None;
             for lib_name in &possible_lib_names {
                 let lib_path = install_dir.join("lib").join(lib_name);
                 if lib_path.exists() {
@@ -554,12 +556,21 @@ mod build_tesseract {
                         name,
                         lib_path.display()
                     );
-                    found_lib_path = Some(lib_path);
+                    // Extract the library name without extension for linking
+                    let link_name = if cfg!(target_os = "windows") {
+                        lib_name.strip_suffix(".lib").unwrap_or(lib_name)
+                    } else {
+                        lib_name
+                            .strip_prefix("lib")
+                            .and_then(|s| s.strip_suffix(".a"))
+                            .unwrap_or(lib_name)
+                    };
+                    found_lib_name = Some((lib_path, link_name.to_string()));
                     break;
                 }
             }
 
-            if let Some(lib_path) = found_lib_path {
+            if let Some((lib_path, link_name)) = found_lib_name {
                 // Copy to expected location for caching
                 if out_path.exists() {
                     // Library already available at expected location.
@@ -573,6 +584,7 @@ mod build_tesseract {
                 if let Err(e) = fs::copy(&lib_path, &cached_path) {
                     println!("cargo:warning=Failed to cache library: {}", e);
                 }
+                link_name
             } else {
                 println!(
                     "cargo:warning=Library {} not found! Searched for: {:?}",
@@ -589,28 +601,18 @@ mod build_tesseract {
                         println!("cargo:warning=  - {}", entry.file_name().to_string_lossy());
                     }
                 }
+                // Fallback to generic name
+                name.to_string()
             }
-        }
+        };
 
+        // Set up linking using the determined library name
         println!(
             "cargo:rustc-link-search=native={}",
             install_dir.join("lib").display()
         );
-
-        println!("cargo:rustc-link-lib=static={}", name);
-
-        // For Windows, try alternative names if primary fails
-        if cfg!(target_os = "windows") && name == "leptonica" {
-            println!(
-                "cargo:rustc-link-lib=static=leptonica-{}",
-                LEPTONICA_VERSION
-            );
-        } else if cfg!(target_os = "windows") && name == "tesseract" {
-            println!(
-                "cargo:rustc-link-lib=static=tesseract{}",
-                TESSERACT_LIB_VERSION
-            );
-        }
+        println!("cargo:rustc-link-lib=static={}", link_name_to_use);
+        println!("cargo:warning=Linking with library: {}", link_name_to_use);
     }
 }
 
