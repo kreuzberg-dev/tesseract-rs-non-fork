@@ -94,13 +94,21 @@ If checks fail locally, fix the issues and re-run `prek run --all-files`.
 
 ## Development Setup
 
+### Prerequisites
+
+Make sure the following tools are available before you start:
+
+- Rust 1.83.0 or newer (the project targets the 2024 edition)
+- A C++ compiler (e.g. clang, gcc, or MSVC)
+- CMake (required by the build script)
+- Internet connectivity for downloading Tesseract and Leptonica sources plus training data
+- [Prek](https://github.com/j178/prek) for managing git hooks (`uv tool install prek`)
+- Optional: [sccache](https://github.com/mozilla/sccache). Export `RUSTC_WRAPPER=sccache` locally if you want to cache compiler outputs.
+
 1. Clone the repository
 2. Install Rust (latest stable version)
-3. Install build dependencies:
-   - CMake
-   - C++ compiler
-   - Prek (via `uv tool install prek`) for git hooks
-4. Run `prek install && prek install --hook-type commit-msg` or execute `./setup-hooks.sh`
+3. Verify the prerequisites above (CMake, compiler, Prek) are installed
+4. Run `prek install && prek install --hook-type commit-msg`
 5. Run `cargo build` to ensure everything compiles
 6. Run `cargo test` to run the test suite
 
