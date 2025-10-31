@@ -8,10 +8,23 @@ mod build_tesseract {
     use std::path::{Path, PathBuf};
 
     // Use specific release versions for stability
-    const LEPTONICA_URL: &str =
-        "https://github.com/DanBloomberg/leptonica/archive/refs/tags/1.86.0.zip";
-    const TESSERACT_URL: &str =
-        "https://github.com/tesseract-ocr/tesseract/archive/refs/tags/5.5.1.zip";
+    const LEPTONICA_VERSION: &str = "1.86.0";
+    const TESSERACT_VERSION: &str = "5.5.1";
+    const TESSERACT_LIB_VERSION: &str = "55"; // Major + minor version for Windows lib naming
+
+    fn leptonica_url() -> String {
+        format!(
+            "https://github.com/DanBloomberg/leptonica/archive/refs/tags/{}.zip",
+            LEPTONICA_VERSION
+        )
+    }
+
+    fn tesseract_url() -> String {
+        format!(
+            "https://github.com/tesseract-ocr/tesseract/archive/refs/tags/{}.zip",
+            TESSERACT_VERSION
+        )
+    }
 
     fn get_custom_out_dir() -> PathBuf {
         if cfg!(target_os = "macos") {
@@ -65,7 +78,7 @@ mod build_tesseract {
             third_party_dir.join("leptonica")
         } else {
             fs::create_dir_all(&third_party_dir).expect("Failed to create third_party directory");
-            download_and_extract(&third_party_dir, LEPTONICA_URL, "leptonica")
+            download_and_extract(&third_party_dir, &leptonica_url(), "leptonica")
         };
 
         let tesseract_dir = if third_party_dir.join("tesseract").exists() {
@@ -73,7 +86,7 @@ mod build_tesseract {
             third_party_dir.join("tesseract")
         } else {
             fs::create_dir_all(&third_party_dir).expect("Failed to create third_party directory");
-            download_and_extract(&third_party_dir, TESSERACT_URL, "tesseract")
+            download_and_extract(&third_party_dir, &tesseract_url(), "tesseract")
         };
 
         let (cmake_cxx_flags, additional_defines) = get_os_specific_config();
@@ -588,9 +601,15 @@ mod build_tesseract {
 
         // For Windows, try alternative names if primary fails
         if cfg!(target_os = "windows") && name == "leptonica" {
-            println!("cargo:rustc-link-lib=static=leptonica-1.84.1");
+            println!(
+                "cargo:rustc-link-lib=static=leptonica-{}",
+                LEPTONICA_VERSION
+            );
         } else if cfg!(target_os = "windows") && name == "tesseract" {
-            println!("cargo:rustc-link-lib=static=tesseract53");
+            println!(
+                "cargo:rustc-link-lib=static=tesseract{}",
+                TESSERACT_LIB_VERSION
+            );
         }
     }
 }
