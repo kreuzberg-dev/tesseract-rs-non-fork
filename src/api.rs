@@ -1494,7 +1494,7 @@ unsafe extern "C" {
     fn TessBaseAPIGetUNLVText(handle: *mut c_void) -> *mut c_char;
     fn TessBaseAPIAllWordConfidences(handle: *mut c_void) -> *const c_int;
     fn TessBaseAPIAdaptToWordStr(handle: *mut c_void, mode: c_int, wordstr: *const c_char)
-        -> c_int;
+    -> c_int;
     fn TessBaseAPIDetectOrientationScript(
         handle: *mut c_void,
         orient_deg: *mut c_int,

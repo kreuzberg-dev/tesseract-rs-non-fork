@@ -1,5 +1,5 @@
-use crate::error::{Result, TesseractError};
 use crate::TesseractAPI;
+use crate::error::{Result, TesseractError};
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int, c_void};
 use std::sync::Arc;

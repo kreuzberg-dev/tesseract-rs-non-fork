@@ -1,8 +1,8 @@
+use crate::TesseractError;
 use crate::enums::{
     TessOrientation, TessPageIteratorLevel, TessParagraphJustification, TessPolyBlockType,
     TessTextlineOrder, TessWritingDirection,
 };
-use crate::TesseractError;
 use std::os::raw::{c_float, c_int, c_void};
 use std::sync::Arc;
 use std::sync::Mutex;
