@@ -2,7 +2,7 @@ use image::{DynamicImage, ImageBuffer, Luma};
 use imageproc::contrast::adaptive_threshold;
 use imageproc::filter::filter3x3;
 use std::path::{Path, PathBuf};
-use tesseract_rs::{TessOrientation, TessPageIteratorLevel, TessWritingDirection, TesseractAPI};
+use tesseract_rs::{TessOrientation, TessPageIteratorLevel, TessPageSegMode, TessWritingDirection, TesseractAPI};
 
 fn get_default_tessdata_dir() -> PathBuf {
     if cfg!(target_os = "macos") {
@@ -741,5 +741,118 @@ fn test_structured_outputs_and_rectangles() {
     assert!(
         partial_text.len() < full_text.len(),
         "Rectangle-based recognition should reduce extracted text"
+    );
+}
+
+#[test]
+fn test_page_seg_mode_roundtrip() {
+    let tessdata_dir = get_tessdata_dir();
+    let api = TesseractAPI::new();
+    api.init(tessdata_dir.to_str().unwrap(), "eng")
+        .expect("Failed to initialize Tesseract");
+
+    api.set_page_seg_mode(TessPageSegMode::PSM_SINGLE_BLOCK)
+        .expect("Failed to set PSM");
+    let mode = api.get_page_seg_mode().expect("Failed to fetch PSM");
+    assert_eq!(mode, TessPageSegMode::PSM_SINGLE_BLOCK);
+
+    api.set_page_seg_mode(TessPageSegMode::PSM_AUTO_OSD)
+        .expect("Failed to set second PSM");
+    let second = api.get_page_seg_mode().expect("Failed to fetch second PSM");
+    assert_eq!(second, TessPageSegMode::PSM_AUTO_OSD);
+}
+
+#[test]
+fn test_thresholded_image_helpers() {
+    let tessdata_dir = get_tessdata_dir();
+    let api = TesseractAPI::new();
+    api.init(tessdata_dir.to_str().unwrap(), "eng")
+        .expect("Failed to initialize Tesseract");
+
+    api.set_source_resolution(300).expect("Failed to set DPI");
+
+    let (image_data, width, height) = load_test_image("sample_text.png").expect("Failed to load test image");
+    api.set_image(&image_data, width as i32, height as i32, 3, 3 * width as i32)
+        .expect("Failed to set image");
+    api.recognize().expect("Recognition failed");
+
+    let thresholded_image = api.get_thresholded_image().expect("Failed to obtain thresholded image");
+    assert!(
+        !thresholded_image.is_null(),
+        "Expected thresholded image pointer to be non-null"
+    );
+
+    let scale_factor = api
+        .get_thresholded_image_scale_factor()
+        .expect("Failed to get threshold scale factor");
+    assert!(
+        scale_factor >= 1,
+        "Unexpected scale factor returned from Tesseract: {}",
+        scale_factor
+    );
+
+    let y_res = api
+        .get_source_y_resolution()
+        .expect("Failed to query source resolution");
+    assert!(
+        y_res >= 70,
+        "Expected Tesseract to report a plausible DPI, got {}",
+        y_res
+    );
+}
+
+#[test]
+fn test_text_direction_metrics() {
+    let tessdata_dir = get_tessdata_dir();
+    let api = TesseractAPI::new();
+    api.init(tessdata_dir.to_str().unwrap(), "eng")
+        .expect("Failed to initialize Tesseract");
+
+    let (image_data, width, height) = load_test_image("sample_text.png").expect("Failed to load test image");
+    api.set_image(&image_data, width as i32, height as i32, 3, 3 * width as i32)
+        .expect("Failed to set image");
+    api.recognize().expect("Recognition failed");
+
+    let (text_dir_deg, text_dir_conf) = api.get_text_direction().expect("Failed to query text direction");
+    assert!(
+        text_dir_conf.is_finite(),
+        "Text direction confidence should be a finite number"
+    );
+    assert!(
+        (0..=360).contains(&text_dir_deg),
+        "Text direction degrees should fall within one rotation, got {}",
+        text_dir_deg
+    );
+}
+
+#[test]
+fn test_is_valid_word_and_clear() {
+    let tessdata_dir = get_tessdata_dir();
+    let api = TesseractAPI::new();
+    api.init(tessdata_dir.to_str().unwrap(), "eng")
+        .expect("Failed to initialize Tesseract");
+
+    let (image_data, width, height) = load_test_image("sample_text.png").expect("Failed to load test image");
+    api.set_image(&image_data, width as i32, height as i32, 3, 3 * width as i32)
+        .expect("Failed to set image");
+
+    api.recognize().expect("Recognition failed");
+    let text = api.get_utf8_text().expect("Failed to gather text");
+    assert!(!text.is_empty(), "Expected non-empty OCR output");
+
+    let validity = api.is_valid_word("sample").expect("Failed to validate word");
+    assert!(
+        validity > 0,
+        "Expected 'sample' to be recognised as a valid dictionary word"
+    );
+
+    api.clear().expect("Failed to clear OCR engine");
+    api.set_image(&image_data, width as i32, height as i32, 3, 3 * width as i32)
+        .expect("Failed to reset image after clear");
+    api.recognize().expect("Recognition after clear failed");
+    let rerun_text = api.get_utf8_text().expect("Failed to gather text after clear");
+    assert!(
+        !rerun_text.is_empty(),
+        "Expected OCR output after clearing and re-recognizing"
     );
 }
