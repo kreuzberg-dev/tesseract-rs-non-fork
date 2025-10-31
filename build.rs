@@ -548,13 +548,13 @@ mod build_tesseract {
 
             if let Some(lib_path) = found_lib_path {
                 // Copy to expected location for caching
-                if !out_path.exists() {
-                    if let Err(e) = fs::copy(&lib_path, &out_path) {
-                        println!(
-                            "cargo:warning=Failed to copy library to standard location: {}",
-                            e
-                        );
-                    }
+                if out_path.exists() {
+                    // Library already available at expected location.
+                } else if let Err(e) = fs::copy(&lib_path, &out_path) {
+                    println!(
+                        "cargo:warning=Failed to copy library to standard location: {}",
+                        e
+                    );
                 }
                 // Cache the library
                 if let Err(e) = fs::copy(&lib_path, &cached_path) {
