@@ -139,8 +139,7 @@ mod mutable_iterator;
 pub use mutable_iterator::MutableIterator;
 mod enums;
 pub use enums::{
-    TessOrientation, TessPageIteratorLevel, TessPageSegMode, TessPolyBlockType, TessTextlineOrder,
-    TessWritingDirection,
+    TessOrientation, TessPageIteratorLevel, TessPageSegMode, TessPolyBlockType, TessTextlineOrder, TessWritingDirection,
 };
 mod api;
 pub use api::TesseractAPI;

@@ -69,9 +69,7 @@ impl TessResultRenderer {
     pub fn new_pdf_renderer(outputbase: &str, datadir: &str, textonly: bool) -> Result<Self> {
         let outputbase = CString::new(outputbase).unwrap();
         let datadir = CString::new(datadir).unwrap();
-        let handle = unsafe {
-            TessPDFRendererCreate(outputbase.as_ptr(), datadir.as_ptr(), textonly as c_int)
-        };
+        let handle = unsafe { TessPDFRendererCreate(outputbase.as_ptr(), datadir.as_ptr(), textonly as c_int) };
         if handle.is_null() {
             Err(TesseractError::NullPointerError)
         } else {
@@ -174,11 +172,7 @@ impl Drop for TessResultRenderer {
 unsafe extern "C" {
     pub fn TessTextRendererCreate(outputbase: *const c_char) -> *mut c_void;
     pub fn TessHOcrRendererCreate(outputbase: *const c_char) -> *mut c_void;
-    pub fn TessPDFRendererCreate(
-        outputbase: *const c_char,
-        datadir: *const c_char,
-        textonly: c_int,
-    ) -> *mut c_void;
+    pub fn TessPDFRendererCreate(outputbase: *const c_char, datadir: *const c_char, textonly: c_int) -> *mut c_void;
     pub fn TessDeleteResultRenderer(renderer: *mut c_void);
     pub fn TessResultRendererBeginDocument(renderer: *mut c_void, title: *const c_char) -> c_int;
     pub fn TessResultRendererAddImage(renderer: *mut c_void, api: *mut c_void) -> c_int;

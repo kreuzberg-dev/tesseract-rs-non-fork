@@ -29,10 +29,7 @@ impl ChoiceIterator {
     ///
     /// Returns `true` if the next choice is successful, otherwise returns `false`.
     pub fn next(&self) -> Result<bool> {
-        let handle = self
-            .handle
-            .lock()
-            .map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
         Ok(unsafe { TessChoiceIteratorNext(*handle) != 0 })
     }
 
@@ -42,10 +39,7 @@ impl ChoiceIterator {
     ///
     /// Returns the UTF-8 text as a `String` if successful, otherwise returns an error.
     pub fn get_utf8_text(&self) -> Result<String> {
-        let handle = self
-            .handle
-            .lock()
-            .map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
         let text_ptr = unsafe { TessChoiceIteratorGetUTF8Text(*handle) };
         if text_ptr.is_null() {
             return Err(TesseractError::NullPointerError);
@@ -62,10 +56,7 @@ impl ChoiceIterator {
     ///
     /// Returns the confidence as a `f32`.
     pub fn confidence(&self) -> Result<f32> {
-        let handle = self
-            .handle
-            .lock()
-            .map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
         Ok(unsafe { TessChoiceIteratorConfidence(*handle) })
     }
 }

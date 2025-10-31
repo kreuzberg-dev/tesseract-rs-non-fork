@@ -14,9 +14,7 @@ fn get_default_tessdata_dir() -> PathBuf {
             .join("tessdata")
     } else if cfg!(target_os = "linux") {
         let home_dir = std::env::var("HOME").expect("HOME environment variable not set");
-        PathBuf::from(home_dir)
-            .join(".tesseract-rs")
-            .join("tessdata")
+        PathBuf::from(home_dir).join(".tesseract-rs").join("tessdata")
     } else if cfg!(target_os = "windows") {
         PathBuf::from(std::env::var("APPDATA").expect("APPDATA environment variable not set"))
             .join("tesseract-rs")
@@ -35,10 +33,7 @@ fn get_tessdata_dir() -> PathBuf {
         }
         Err(_) => {
             let default_dir = get_default_tessdata_dir();
-            println!(
-                "TESSDATA_PREFIX not set, using default directory: {:?}",
-                default_dir
-            );
+            println!("TESSDATA_PREFIX not set, using default directory: {:?}", default_dir);
             default_dir
         }
     }
@@ -93,13 +88,7 @@ fn test_multiple_languages_with_lstm() {
     let preprocessed = preprocess_image(&img);
     let (width, height) = preprocessed.dimensions();
 
-    let res = api.set_image(
-        preprocessed.as_raw(),
-        width as i32,
-        height as i32,
-        1,
-        width as i32,
-    );
+    let res = api.set_image(preprocessed.as_raw(), width as i32, height as i32, 1, width as i32);
     assert!(res.is_ok());
     let text = api.get_utf8_text().expect("Failed to perform OCR");
     println!("Recognized text: {}", text);
@@ -127,15 +116,8 @@ fn test_ocr_on_real_image() {
     api.init(tessdata_dir.to_str().unwrap(), "eng")
         .expect("Failed to initialize Tesseract");
 
-    let (image_data, width, height) =
-        load_test_image("sample_text.png").expect("Failed to load test image");
-    let res = api.set_image(
-        &image_data,
-        width as i32,
-        height as i32,
-        3,
-        3 * width as i32,
-    );
+    let (image_data, width, height) = load_test_image("sample_text.png").expect("Failed to load test image");
+    let res = api.set_image(&image_data, width as i32, height as i32, 3, 3 * width as i32);
     assert!(res.is_ok());
     let text = api.get_utf8_text().expect("Failed to perform OCR");
     assert!(!text.is_empty());
@@ -167,15 +149,8 @@ fn test_multiple_languages() {
     )
     .expect("Failed to set char whitelist");
 
-    let (image_data, width, height) =
-        load_test_image("multilang_sample.png").expect("Failed to load test image");
-    let res = api.set_image(
-        &image_data,
-        width as i32,
-        height as i32,
-        3,
-        3 * width as i32,
-    );
+    let (image_data, width, height) = load_test_image("multilang_sample.png").expect("Failed to load test image");
+    let res = api.set_image(&image_data, width as i32, height as i32, 3, 3 * width as i32);
     assert!(res.is_ok());
     let text = api.get_utf8_text().expect("Failed to perform OCR");
     assert!(!text.is_empty());
@@ -191,23 +166,13 @@ fn test_digit_recognition() {
     api.set_variable("tessedit_char_whitelist", "0123456789")
         .expect("Failed to set whitelist");
 
-    let (image_data, width, height) =
-        load_test_image("digits.png").expect("Failed to load test image");
-    let res = api.set_image(
-        &image_data,
-        width as i32,
-        height as i32,
-        3,
-        3 * width as i32,
-    );
+    let (image_data, width, height) = load_test_image("digits.png").expect("Failed to load test image");
+    let res = api.set_image(&image_data, width as i32, height as i32, 3, 3 * width as i32);
     assert!(res.is_ok());
 
     let text = api.get_utf8_text().expect("Failed to perform OCR");
     assert!(!text.is_empty());
-    assert!(
-        text.chars()
-            .all(|c| c.is_ascii_digit() || c.is_whitespace())
-    );
+    assert!(text.chars().all(|c| c.is_ascii_digit() || c.is_whitespace()));
 }
 
 #[test]
@@ -228,8 +193,7 @@ fn test_image_operation_errors() {
     api.init(tessdata_dir.to_str().unwrap(), "eng")
         .expect("Failed to initialize Tesseract");
 
-    let (image_data, width, height) =
-        load_test_image("sample_text.png").expect("Failed to load test image");
+    let (image_data, width, height) = load_test_image("sample_text.png").expect("Failed to load test image");
 
     let res = api.set_image(
         &image_data,
@@ -271,8 +235,7 @@ fn test_invalid_image_parameters() {
     api.init(tessdata_dir.to_str().unwrap(), "eng")
         .expect("Failed to initialize Tesseract");
 
-    let (image_data, width, height) =
-        load_test_image("sample_text.png").expect("Failed to load test image");
+    let (image_data, width, height) = load_test_image("sample_text.png").expect("Failed to load test image");
 
     // Test negative dimensions
     let res = api.set_image(&image_data, -1, height as i32, 3, 3 * width as i32);
@@ -283,13 +246,7 @@ fn test_invalid_image_parameters() {
     assert!(res.is_err());
 
     // Test invalid bytes_per_pixel
-    let res = api.set_image(
-        &image_data,
-        width as i32,
-        height as i32,
-        0,
-        3 * width as i32,
-    );
+    let res = api.set_image(&image_data, width as i32, height as i32, 0, 3 * width as i32);
     assert!(res.is_err());
 
     // Test mismatched bytes_per_line
@@ -324,18 +281,11 @@ fn test_multiple_operations() {
     api.init(tessdata_dir.to_str().unwrap(), "eng")
         .expect("Failed to initialize Tesseract");
 
-    let (image_data, width, height) =
-        load_test_image("sample_text.png").expect("Failed to load test image");
+    let (image_data, width, height) = load_test_image("sample_text.png").expect("Failed to load test image");
 
     // Set image multiple times
     for _ in 0..3 {
-        let res = api.set_image(
-            &image_data,
-            width as i32,
-            height as i32,
-            3,
-            3 * width as i32,
-        );
+        let res = api.set_image(&image_data, width as i32, height as i32, 3, 3 * width as i32);
         assert!(res.is_ok());
         let text = api.get_utf8_text().expect("Failed to perform OCR");
         assert!(!text.is_empty());
@@ -355,13 +305,7 @@ fn test_preprocessing_effects() {
     let preprocessed = preprocess_image(&img);
     let (width, height) = preprocessed.dimensions();
 
-    let res = api.set_image(
-        preprocessed.as_raw(),
-        width as i32,
-        height as i32,
-        1,
-        width as i32,
-    );
+    let res = api.set_image(preprocessed.as_raw(), width as i32, height as i32, 1, width as i32);
     assert!(res.is_ok());
 
     let text = api.get_utf8_text().expect("Failed to perform OCR");
@@ -423,17 +367,10 @@ fn test_thread_safety_with_image() {
     api.set_variable("tessedit_pageseg_mode", "1")
         .expect("Failed to set PSM");
 
-    let (image_data, width, height) =
-        load_test_image("sample_text.png").expect("Failed to load test image");
+    let (image_data, width, height) = load_test_image("sample_text.png").expect("Failed to load test image");
 
     // Image'ı ana thread'de set et
-    let res = api.set_image(
-        &image_data,
-        width as i32,
-        height as i32,
-        3,
-        3 * width as i32,
-    );
+    let res = api.set_image(&image_data, width as i32, height as i32, 3, 3 * width as i32);
     assert!(res.is_ok());
 
     let image_data = Arc::new(image_data);
@@ -445,13 +382,7 @@ fn test_thread_safety_with_image() {
         let image_data = Arc::clone(&image_data);
 
         let handle = thread::spawn(move || {
-            let res = api_clone.set_image(
-                &image_data,
-                width as i32,
-                height as i32,
-                3,
-                3 * width as i32,
-            );
+            let res = api_clone.set_image(&image_data, width as i32, height as i32, 3, 3 * width as i32);
             assert!(res.is_ok());
 
             let text = api_clone.get_utf8_text().expect("Failed to get text");
@@ -490,10 +421,7 @@ fn test_thread_safety_init() {
             let res = api_clone.init(tessdata_dir.to_str().unwrap(), lang);
             // Note: Only one initialization should succeed due to mutex
             if res.is_err() {
-                println!(
-                    "Init failed for lang {}, which is expected in some cases",
-                    lang
-                );
+                println!("Init failed for lang {}, which is expected in some cases", lang);
             }
         });
         handles.push(handle);
@@ -582,28 +510,15 @@ fn test_iterators_provide_word_metadata() {
     api.init(tessdata_dir.to_str().unwrap(), "eng")
         .expect("Failed to initialize Tesseract");
 
-    let (image_data, width, height) =
-        load_test_image("sample_text.png").expect("Failed to load test image");
-    api.set_image(
-        &image_data,
-        width as i32,
-        height as i32,
-        3,
-        3 * width as i32,
-    )
-    .expect("Failed to set image");
+    let (image_data, width, height) = load_test_image("sample_text.png").expect("Failed to load test image");
+    api.set_image(&image_data, width as i32, height as i32, 3, 3 * width as i32)
+        .expect("Failed to set image");
 
-    let page_iter = api
-        .analyze_layout()
-        .expect("Failed to obtain page iterator");
+    let page_iter = api.analyze_layout().expect("Failed to obtain page iterator");
     page_iter.begin();
-    let (orientation, writing_direction, _, _) =
-        page_iter.orientation().expect("Expected orientation data");
+    let (orientation, writing_direction, _, _) = page_iter.orientation().expect("Expected orientation data");
     assert_eq!(orientation, TessOrientation::ORIENTATION_PAGE_UP);
-    assert_eq!(
-        writing_direction,
-        TessWritingDirection::WRITING_DIRECTION_LEFT_TO_RIGHT
-    );
+    assert_eq!(writing_direction, TessWritingDirection::WRITING_DIRECTION_LEFT_TO_RIGHT);
 
     let mut bounding_boxes = 0;
     loop {
@@ -622,9 +537,7 @@ fn test_iterators_provide_word_metadata() {
     assert!(bounding_boxes > 0);
 
     api.recognize().expect("Recognition step failed");
-    let result_iter = api
-        .get_iterator()
-        .expect("Failed to obtain result iterator");
+    let result_iter = api.get_iterator().expect("Failed to obtain result iterator");
     let mut words = Vec::new();
     loop {
         let word = result_iter
@@ -663,16 +576,9 @@ fn test_result_iterator_numeric_detection() {
     api.set_variable("tessedit_char_whitelist", "0123456789")
         .expect("Failed to whitelist digits");
 
-    let (image_data, width, height) =
-        load_test_image("digits.png").expect("Failed to load test image");
-    api.set_image(
-        &image_data,
-        width as i32,
-        height as i32,
-        3,
-        3 * width as i32,
-    )
-    .expect("Failed to set digits image");
+    let (image_data, width, height) = load_test_image("digits.png").expect("Failed to load test image");
+    api.set_image(&image_data, width as i32, height as i32, 3, 3 * width as i32)
+        .expect("Failed to set digits image");
 
     api.recognize().expect("Recognition step failed");
 
@@ -684,9 +590,7 @@ fn test_result_iterator_numeric_detection() {
             .get_utf8_text(TessPageIteratorLevel::RIL_WORD)
             .expect("Expected recognized text");
         if !word.trim().is_empty() {
-            let numeric = result_iter
-                .word_is_numeric()
-                .expect("Numeric flag lookup failed");
+            let numeric = result_iter.word_is_numeric().expect("Numeric flag lookup failed");
             if numeric {
                 saw_numeric = true;
                 assert!(
@@ -715,16 +619,9 @@ fn test_language_and_confidence_helpers() {
     api.init(tessdata_dir.to_str().unwrap(), "eng")
         .expect("Failed to initialize Tesseract");
 
-    let (image_data, width, height) =
-        load_test_image("sample_text.png").expect("Failed to load test image");
-    api.set_image(
-        &image_data,
-        width as i32,
-        height as i32,
-        3,
-        3 * width as i32,
-    )
-    .expect("Failed to set image");
+    let (image_data, width, height) = load_test_image("sample_text.png").expect("Failed to load test image");
+    api.set_image(&image_data, width as i32, height as i32, 3, 3 * width as i32)
+        .expect("Failed to set image");
     api.recognize().expect("Recognition failed");
     let full_text = api.get_utf8_text().expect("Failed to get full OCR output");
 
@@ -734,9 +631,7 @@ fn test_language_and_confidence_helpers() {
         full_text
     );
 
-    let word_confidences = api
-        .get_word_confidences()
-        .expect("Failed to gather word confidences");
+    let word_confidences = api.get_word_confidences().expect("Failed to gather word confidences");
     assert!(
         !word_confidences.is_empty(),
         "Expected confidences for recognized words"
@@ -755,9 +650,7 @@ fn test_language_and_confidence_helpers() {
     let mean_conf = api.mean_text_conf().expect("Failed to get mean confidence");
     assert!((0..=100).contains(&mean_conf));
 
-    let loaded = api
-        .get_loaded_languages()
-        .expect("Failed to query loaded languages");
+    let loaded = api.get_loaded_languages().expect("Failed to query loaded languages");
     assert!(
         loaded.iter().any(|lang| lang == "eng"),
         "Expected 'eng' in loaded languages: {:?}",
@@ -788,17 +681,10 @@ fn test_language_and_confidence_helpers() {
     );
 
     let datapath = api.get_datapath().expect("Failed to fetch datapath");
-    assert!(
-        Path::new(&datapath).exists(),
-        "Datapath does not exist: {}",
-        datapath
-    );
+    assert!(Path::new(&datapath).exists(), "Datapath does not exist: {}", datapath);
 
-    api.set_input_name("sample_text.png")
-        .expect("Failed to set input name");
-    let input_name = api
-        .get_input_name()
-        .expect("Failed to read back input name");
+    api.set_input_name("sample_text.png").expect("Failed to set input name");
+    let input_name = api.get_input_name().expect("Failed to read back input name");
     assert!(
         input_name.ends_with("sample_text.png"),
         "Input name mismatch: {}",
@@ -816,26 +702,16 @@ fn test_structured_outputs_and_rectangles() {
     api.init(tessdata_dir.to_str().unwrap(), "eng")
         .expect("Failed to initialize Tesseract");
 
-    let (image_data, width, height) =
-        load_test_image("sample_text.png").expect("Failed to load test image");
-    api.set_image(
-        &image_data,
-        width as i32,
-        height as i32,
-        3,
-        3 * width as i32,
-    )
-    .expect("Failed to set image");
+    let (image_data, width, height) = load_test_image("sample_text.png").expect("Failed to load test image");
+    api.set_image(&image_data, width as i32, height as i32, 3, 3 * width as i32)
+        .expect("Failed to set image");
     api.recognize().expect("Recognition failed");
     let full_text = api
         .get_utf8_text()
         .expect("Failed to get full OCR output for rectangle comparison");
 
     let hocr = api.get_hocr_text(0).expect("Failed to get hOCR output");
-    assert!(
-        hocr.contains("ocr_page"),
-        "hOCR output missing expected marker"
-    );
+    assert!(hocr.contains("ocr_page"), "hOCR output missing expected marker");
 
     let tsv = api.get_tsv_text(0).expect("Failed to get TSV output");
     assert!(
@@ -856,20 +732,12 @@ fn test_structured_outputs_and_rectangles() {
         .init(tessdata_dir.to_str().unwrap(), "eng")
         .expect("Failed to initialize API for rectangle test");
     api_with_rect
-        .set_image(
-            &image_data,
-            width as i32,
-            height as i32,
-            3,
-            3 * width as i32,
-        )
+        .set_image(&image_data, width as i32, height as i32, 3, 3 * width as i32)
         .expect("Failed to set image for rectangle test");
     api_with_rect
         .set_rectangle(0, 0, (width / 2) as i32, height as i32)
         .expect("Failed to set rectangle");
-    let partial_text = api_with_rect
-        .get_utf8_text()
-        .expect("Failed to run OCR on rectangle");
+    let partial_text = api_with_rect.get_utf8_text().expect("Failed to run OCR on rectangle");
     assert!(
         partial_text.len() < full_text.len(),
         "Rectangle-based recognition should reduce extracted text"
