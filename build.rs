@@ -187,7 +187,9 @@ mod build_tesseract {
         let leptonica_lib_dir = leptonica_install_dir.join("lib");
         let tesseract_install_dir = out_dir.join("tesseract");
         let tesseract_cache_dir = cache_dir.join("tesseract");
-        let tessdata_prefix = project_dir.join("tessdata");
+        // TESSDATA_PREFIX should point to parent directory of tessdata, not tessdata itself
+        // Tesseract will append /tessdata/ internally
+        let tessdata_prefix = project_dir.clone();
 
         build_or_use_cached(
             "tesseract",
