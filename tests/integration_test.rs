@@ -2,7 +2,7 @@ use image::{DynamicImage, ImageBuffer, Luma};
 use imageproc::contrast::adaptive_threshold;
 use imageproc::filter::filter3x3;
 use std::path::PathBuf;
-use tesseract_rs::TesseractAPI;
+use tesseract_rs::{TessOrientation, TessPageIteratorLevel, TessWritingDirection, TesseractAPI};
 
 fn get_default_tessdata_dir() -> PathBuf {
     if cfg!(target_os = "macos") {
@@ -572,4 +572,139 @@ fn test_dynamic_image_setting() {
     // Check if the result contains the digit 9
     assert!(!text.trim().is_empty(), "OCR result is empty");
     assert!(text.trim().contains("9"), "Expected digit '9' not found");
+}
+
+#[test]
+fn test_iterators_provide_word_metadata() {
+    let tessdata_dir = get_tessdata_dir();
+    let api = TesseractAPI::new();
+    api.init(tessdata_dir.to_str().unwrap(), "eng")
+        .expect("Failed to initialize Tesseract");
+
+    let (image_data, width, height) =
+        load_test_image("sample_text.png").expect("Failed to load test image");
+    api.set_image(
+        &image_data,
+        width as i32,
+        height as i32,
+        3,
+        3 * width as i32,
+    )
+    .expect("Failed to set image");
+
+    let page_iter = api
+        .analyze_layout()
+        .expect("Failed to obtain page iterator");
+    page_iter.begin();
+    let (orientation, writing_direction, _, _) =
+        page_iter.orientation().expect("Expected orientation data");
+    assert_eq!(orientation, TessOrientation::ORIENTATION_PAGE_UP);
+    assert_eq!(
+        writing_direction,
+        TessWritingDirection::WRITING_DIRECTION_LEFT_TO_RIGHT
+    );
+
+    let mut bounding_boxes = 0;
+    loop {
+        let (left, top, right, bottom) = page_iter
+            .bounding_box(TessPageIteratorLevel::RIL_WORD)
+            .expect("Expected bounding box for word");
+        assert!(left < right);
+        assert!(top < bottom);
+        bounding_boxes += 1;
+
+        let has_more_page = page_iter.next(TessPageIteratorLevel::RIL_WORD);
+        if !has_more_page {
+            break;
+        }
+    }
+    assert!(bounding_boxes > 0);
+
+    api.recognize().expect("Recognition step failed");
+    let result_iter = api
+        .get_iterator()
+        .expect("Failed to obtain result iterator");
+    let mut words = Vec::new();
+    loop {
+        let word = result_iter
+            .get_utf8_text(TessPageIteratorLevel::RIL_WORD)
+            .expect("Expected word text");
+        let trimmed = word.trim();
+        if !trimmed.is_empty() {
+            words.push(trimmed.to_string());
+            let confidence = result_iter
+                .confidence(TessPageIteratorLevel::RIL_WORD)
+                .expect("Expected confidence value");
+            assert!((0.0..=100.0).contains(&confidence));
+        }
+
+        if !result_iter
+            .next(TessPageIteratorLevel::RIL_WORD)
+            .expect("Iterator advancement should succeed")
+        {
+            break;
+        }
+    }
+
+    assert!(
+        words
+            .iter()
+            .any(|word| word.eq_ignore_ascii_case("This")),
+        "Expected to capture known words, got {:?}",
+        words
+    );
+}
+
+#[test]
+fn test_result_iterator_numeric_detection() {
+    let tessdata_dir = get_tessdata_dir();
+    let api = TesseractAPI::new();
+    api.init(tessdata_dir.to_str().unwrap(), "eng")
+        .expect("Failed to initialize Tesseract");
+    api.set_variable("tessedit_char_whitelist", "0123456789")
+        .expect("Failed to whitelist digits");
+
+    let (image_data, width, height) =
+        load_test_image("digits.png").expect("Failed to load test image");
+    api.set_image(
+        &image_data,
+        width as i32,
+        height as i32,
+        3,
+        3 * width as i32,
+    )
+    .expect("Failed to set digits image");
+
+    api.recognize().expect("Recognition step failed");
+
+    let result_iter = api.get_iterator().expect("Iterator acquisition failed");
+    let mut saw_numeric = false;
+
+    loop {
+        let word = result_iter
+            .get_utf8_text(TessPageIteratorLevel::RIL_WORD)
+            .expect("Expected recognized text");
+        if !word.trim().is_empty() {
+            let numeric = result_iter
+                .word_is_numeric()
+                .expect("Numeric flag lookup failed");
+            if numeric {
+                saw_numeric = true;
+                assert!(
+                    word.trim().chars().all(|c| c.is_ascii_digit()),
+                    "Expected numeric token, got {}",
+                    word
+                );
+            }
+        }
+
+        if !result_iter
+            .next(TessPageIteratorLevel::RIL_WORD)
+            .expect("Iterator advancement should succeed")
+        {
+            break;
+        }
+    }
+
+    assert!(saw_numeric, "Expected numeric words in digits image");
 }
