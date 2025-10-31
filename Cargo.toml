@@ -38,8 +38,10 @@ zip = { version = "6.0.0", optional = true }
 
 
 [features]
-default = ["build-tesseract"]
+default = ["static-linking"]
 build-tesseract = ["cc", "cmake", "reqwest", "zip"]
+static-linking = ["build-tesseract"]
+dynamic-linking = []
 
 [package.metadata.docs.rs]
 features = ["docs-only"]

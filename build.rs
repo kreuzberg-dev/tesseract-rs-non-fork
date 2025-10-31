@@ -611,12 +611,32 @@ mod build_tesseract {
             "cargo:rustc-link-search=native={}",
             install_dir.join("lib").display()
         );
-        println!("cargo:rustc-link-lib=static={}", link_name_to_use);
-        println!("cargo:warning=Linking with library: {}", link_name_to_use);
+
+        // Determine link type based on features
+        #[cfg(feature = "dynamic-linking")]
+        let link_type = "dylib";
+        #[cfg(not(feature = "dynamic-linking"))]
+        let link_type = "static";
+
+        println!("cargo:rustc-link-lib={}={}", link_type, link_name_to_use);
+        println!(
+            "cargo:warning=Linking with library ({} linking): {}",
+            link_type, link_name_to_use
+        );
     }
 }
 
 fn main() {
     #[cfg(feature = "build-tesseract")]
-    build_tesseract::build();
+    {
+        build_tesseract::build();
+    }
+
+    #[cfg(all(feature = "dynamic-linking", not(feature = "build-tesseract")))]
+    {
+        // Dynamic linking with system libraries - no build needed
+        println!("cargo:warning=Using dynamic linking with system-installed Tesseract libraries");
+        println!("cargo:rustc-link-lib=dylib=tesseract");
+        println!("cargo:rustc-link-lib=dylib=leptonica");
+    }
 }
