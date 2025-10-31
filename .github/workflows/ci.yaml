@@ -34,6 +34,9 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Install Go
+        uses: actions/setup-go@v6
+
       - name: Run Prek validators
         shell: bash
         run: |
