@@ -17,7 +17,10 @@
 # Node.js dependencies
 /node_modules
 package-lock.json
-# AI Rules generated files
+
+# AI Rulez generated files
 CLAUDE.md
 .claude/agents/
 .gemini/
+.mcp.json
+AGENTS.md

@@ -91,11 +91,9 @@ metadata:
   description: Rust binding library for Tesseract OCR with built-in compilation of Tesseract and Leptonica libraries, providing a safe and idiomatic Rust interface for optical character recognition tasks with automatic training data management and cross-platform support.
   name: tesseract-rs
   version: 1.1.0
-outputs:
-  - path: CLAUDE.md
-  - naming_scheme: '{name}.md'
-    path: .claude/agents/
-    type: agent
+presets:
+  - claude
+  - codex
 rules:
   - content: All unsafe interactions with the Tesseract C++ API must document invariants, validate input pointers, and wrap results in safe abstractions. Use `std::ffi::CString` for C strings, guard against interior nulls, and free resources exactly once.
     name: FFI Safety
