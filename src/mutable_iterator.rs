@@ -6,8 +6,9 @@ use std::sync::Mutex;
 
 use crate::result_iterator::{
     TessResultIteratorConfidence, TessResultIteratorGetUTF8Text, TessResultIteratorNext,
-    TessResultIteratorSymbolIsDropcap, TessResultIteratorSymbolIsSubscript, TessResultIteratorSymbolIsSuperscript,
-    TessResultIteratorWordFontAttributes, TessResultIteratorWordIsFromDictionary, TessResultIteratorWordIsNumeric,
+    TessResultIteratorSymbolIsDropcap, TessResultIteratorSymbolIsSubscript,
+    TessResultIteratorSymbolIsSuperscript, TessResultIteratorWordFontAttributes,
+    TessResultIteratorWordIsFromDictionary, TessResultIteratorWordIsNumeric,
     TessResultIteratorWordRecognitionLanguage,
 };
 

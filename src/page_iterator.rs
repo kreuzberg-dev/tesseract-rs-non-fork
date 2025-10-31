@@ -1,7 +1,7 @@
 use crate::TesseractError;
 use crate::enums::{
-    TessOrientation, TessPageIteratorLevel, TessParagraphJustification, TessPolyBlockType, TessTextlineOrder,
-    TessWritingDirection,
+    TessOrientation, TessPageIteratorLevel, TessParagraphJustification, TessPolyBlockType,
+    TessTextlineOrder, TessWritingDirection,
 };
 use std::os::raw::{c_float, c_int, c_void};
 use std::sync::Arc;
@@ -74,7 +74,11 @@ impl PageIterator {
     /// # Returns
     ///
     /// Returns `true` if the current iterator is at the final element of the specified level, otherwise returns `false`.
-    pub fn is_at_final_element(&self, level: TessPageIteratorLevel, element: TessPageIteratorLevel) -> bool {
+    pub fn is_at_final_element(
+        &self,
+        level: TessPageIteratorLevel,
+        element: TessPageIteratorLevel,
+    ) -> bool {
         let handle = self.handle.lock().unwrap();
         unsafe { TessPageIteratorIsAtFinalElement(*handle, level as c_int, element as c_int) != 0 }
     }
@@ -88,14 +92,24 @@ impl PageIterator {
     /// # Returns
     ///
     /// Returns the bounding box as a tuple if successful, otherwise returns an error.
-    pub fn bounding_box(&self, level: TessPageIteratorLevel) -> Result<(i32, i32, i32, i32), TesseractError> {
+    pub fn bounding_box(
+        &self,
+        level: TessPageIteratorLevel,
+    ) -> Result<(i32, i32, i32, i32), TesseractError> {
         let mut left = 0;
         let mut top = 0;
         let mut right = 0;
         let mut bottom = 0;
         let handle = self.handle.lock().unwrap();
         let result = unsafe {
-            TessPageIteratorBoundingBox(*handle, level as c_int, &mut left, &mut top, &mut right, &mut bottom)
+            TessPageIteratorBoundingBox(
+                *handle,
+                level as c_int,
+                &mut left,
+                &mut top,
+                &mut right,
+                &mut bottom,
+            )
         };
         if result == 0 {
             Err(TesseractError::InvalidParameterError)
@@ -130,7 +144,8 @@ impl PageIterator {
         let mut x2 = 0;
         let mut y2 = 0;
         let handle = self.handle.lock().unwrap();
-        let result = unsafe { TessPageIteratorBaseline(*handle, level, &mut x1, &mut y1, &mut x2, &mut y2) };
+        let result =
+            unsafe { TessPageIteratorBaseline(*handle, level, &mut x1, &mut y1, &mut x2, &mut y2) };
         if result == 0 {
             Err(TesseractError::InvalidParameterError)
         } else {
@@ -145,7 +160,15 @@ impl PageIterator {
     /// Returns the orientation as a tuple if successful, otherwise returns an error.
     pub fn orientation(
         &self,
-    ) -> Result<(TessOrientation, TessWritingDirection, TessTextlineOrder, f32), TesseractError> {
+    ) -> Result<
+        (
+            TessOrientation,
+            TessWritingDirection,
+            TessTextlineOrder,
+            f32,
+        ),
+        TesseractError,
+    > {
         let mut orientation = 0;
         let mut writing_direction = 0;
         let mut textline_order = 0;
@@ -177,7 +200,9 @@ impl PageIterator {
     /// # Returns
     ///
     /// Returns the paragraph information as a tuple if successful, otherwise returns an error.
-    pub fn paragraph_info(&self) -> Result<(TessParagraphJustification, bool, bool, i32), TesseractError> {
+    pub fn paragraph_info(
+        &self,
+    ) -> Result<(TessParagraphJustification, bool, bool, i32), TesseractError> {
         let mut justification = 0;
         let mut is_list_item = false;
         let mut is_crown = false;
@@ -218,7 +243,11 @@ unsafe extern "C" {
     pub fn TessPageIteratorBegin(handle: *mut c_void);
     pub fn TessPageIteratorNext(handle: *mut c_void, level: c_int) -> c_int;
     pub fn TessPageIteratorIsAtBeginningOf(handle: *mut c_void, level: c_int) -> c_int;
-    pub fn TessPageIteratorIsAtFinalElement(handle: *mut c_void, level: c_int, element: c_int) -> c_int;
+    pub fn TessPageIteratorIsAtFinalElement(
+        handle: *mut c_void,
+        level: c_int,
+        element: c_int,
+    ) -> c_int;
     pub fn TessPageIteratorBoundingBox(
         handle: *mut c_void,
         level: c_int,

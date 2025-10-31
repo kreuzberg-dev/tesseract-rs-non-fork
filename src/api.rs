@@ -53,7 +53,9 @@ impl TesseractAPI {
     /// Returns the version of the Tesseract engine as a string.
     pub fn version() -> String {
         let version = unsafe { TessVersion() };
-        unsafe { CStr::from_ptr(version) }.to_string_lossy().into_owned()
+        unsafe { CStr::from_ptr(version) }
+            .to_string_lossy()
+            .into_owned()
     }
 
     /// Initializes the Tesseract engine with the specified datapath and language.
@@ -72,14 +74,20 @@ impl TesseractAPI {
 
         // Önce konfigürasyonu güncelle
         {
-            let mut config = self.config.lock().map_err(|_| TesseractError::MutexLockError)?;
+            let mut config = self
+                .config
+                .lock()
+                .map_err(|_| TesseractError::MutexLockError)?;
             config.datapath = datapath_str.clone();
             config.language = language_str.clone();
         }
 
         let datapath = CString::new(datapath_str).unwrap();
         let language = CString::new(language_str).unwrap();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let result = unsafe { TessBaseAPIInit3(*handle, datapath.as_ptr(), language.as_ptr()) };
         if result != 0 {
             Err(TesseractError::InitError)
@@ -94,7 +102,10 @@ impl TesseractAPI {
     ///
     /// Returns a vector of confidence values (0-100) for each recognized word.
     pub fn get_word_confidences(&self) -> Result<Vec<i32>> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
 
         let confidences_ptr = unsafe { TessBaseAPIAllWordConfidences(*handle) };
         let mut confidences = Vec::new();
@@ -112,7 +123,10 @@ impl TesseractAPI {
     ///
     /// Returns the mean text confidence as an integer.
     pub fn mean_text_conf(&self) -> Result<i32> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         Ok(unsafe { TessBaseAPIMeanTextConf(*handle) })
     }
 
@@ -128,13 +142,19 @@ impl TesseractAPI {
     /// Returns `Ok(())` if setting the variable is successful, otherwise returns an error.
     pub fn set_variable(&self, name: &str, value: &str) -> Result<()> {
         {
-            let mut config = self.config.lock().map_err(|_| TesseractError::MutexLockError)?;
+            let mut config = self
+                .config
+                .lock()
+                .map_err(|_| TesseractError::MutexLockError)?;
             config.variables.insert(name.to_owned(), value.to_owned());
         }
 
         let name = CString::new(name).unwrap();
         let value = CString::new(value).unwrap();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let result = unsafe { TessBaseAPISetVariable(*handle, name.as_ptr(), value.as_ptr()) };
         if result != 1 {
             Err(TesseractError::SetVariableError)
@@ -154,7 +174,10 @@ impl TesseractAPI {
     /// Returns the value of the variable as a string.
     pub fn get_string_variable(&self, name: &str) -> Result<String> {
         let name = CString::new(name).unwrap();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let value_ptr = unsafe { TessBaseAPIGetStringVariable(*handle, name.as_ptr()) };
         if value_ptr.is_null() {
             return Err(TesseractError::GetVariableError);
@@ -174,7 +197,10 @@ impl TesseractAPI {
     /// Returns the value of the variable as an integer.
     pub fn get_int_variable(&self, name: &str) -> Result<i32> {
         let name = CString::new(name).unwrap();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         Ok(unsafe { TessBaseAPIGetIntVariable(*handle, name.as_ptr()) })
     }
 
@@ -189,7 +215,10 @@ impl TesseractAPI {
     /// Returns the value of the variable as a boolean.
     pub fn get_bool_variable(&self, name: &str) -> Result<bool> {
         let name = CString::new(name).unwrap();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         Ok(unsafe { TessBaseAPIGetBoolVariable(*handle, name.as_ptr()) } != 0)
     }
 
@@ -204,7 +233,10 @@ impl TesseractAPI {
     /// Returns the value of the variable as a double.
     pub fn get_double_variable(&self, name: &str) -> Result<f64> {
         let name = CString::new(name).unwrap();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         Ok(unsafe { TessBaseAPIGetDoubleVariable(*handle, name.as_ptr()) })
     }
 
@@ -218,7 +250,10 @@ impl TesseractAPI {
     ///
     /// Returns `Ok(())` if setting the page segmentation mode is successful, otherwise returns an error.
     pub fn set_page_seg_mode(&self, mode: TessPageSegMode) -> Result<()> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         unsafe { TessBaseAPISetPageSegMode(*handle, mode as c_int) };
         Ok(())
     }
@@ -229,7 +264,10 @@ impl TesseractAPI {
     ///
     /// Returns the page segmentation mode.
     pub fn get_page_seg_mode(&self) -> Result<TessPageSegMode> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let mode = unsafe { TessBaseAPIGetPageSegMode(*handle) };
         Ok(unsafe { std::mem::transmute(mode) })
     }
@@ -240,7 +278,10 @@ impl TesseractAPI {
     ///
     /// Returns `Ok(())` if recognition is successful, otherwise returns an error.
     pub fn recognize(&self) -> Result<()> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let result = unsafe { TessBaseAPIRecognize(*handle, std::ptr::null_mut()) };
         if result != 0 {
             Err(TesseractError::OcrError)
@@ -259,7 +300,10 @@ impl TesseractAPI {
     ///
     /// Returns the HOCR text for the specified page as a string.
     pub fn get_hocr_text(&self, page: i32) -> Result<String> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let text_ptr = unsafe { TessBaseAPIGetHOCRText(*handle, page) };
         if text_ptr.is_null() {
             return Err(TesseractError::OcrError);
@@ -280,7 +324,10 @@ impl TesseractAPI {
     ///
     /// Returns the ALTO text for the specified page as a string.
     pub fn get_alto_text(&self, page: i32) -> Result<String> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let text_ptr = unsafe { TessBaseAPIGetAltoText(*handle, page) };
         if text_ptr.is_null() {
             return Err(TesseractError::OcrError);
@@ -301,7 +348,10 @@ impl TesseractAPI {
     ///
     /// Returns the TSV text for the specified page as a string.
     pub fn get_tsv_text(&self, page: i32) -> Result<String> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let text_ptr = unsafe { TessBaseAPIGetTsvText(*handle, page) };
         if text_ptr.is_null() {
             return Err(TesseractError::OcrError);
@@ -323,7 +373,10 @@ impl TesseractAPI {
     /// Returns `Ok(())` if setting the input name is successful, otherwise returns an error.
     pub fn set_input_name(&self, name: &str) -> Result<()> {
         let name = CString::new(name).unwrap();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         unsafe { TessBaseAPISetInputName(*handle, name.as_ptr()) };
         Ok(())
     }
@@ -334,7 +387,10 @@ impl TesseractAPI {
     ///
     /// Returns the input name as a string.
     pub fn get_input_name(&self) -> Result<String> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let name_ptr = unsafe { TessBaseAPIGetInputName(*handle) };
         if name_ptr.is_null() {
             return Err(TesseractError::NullPointerError);
@@ -349,7 +405,10 @@ impl TesseractAPI {
     ///
     /// Returns the data path as a string.
     pub fn get_datapath(&self) -> Result<String> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let path_ptr = unsafe { TessBaseAPIGetDatapath(*handle) };
         if path_ptr.is_null() {
             return Err(TesseractError::NullPointerError);
@@ -364,7 +423,10 @@ impl TesseractAPI {
     ///
     /// Returns the source Y resolution as an integer.
     pub fn get_source_y_resolution(&self) -> Result<i32> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         Ok(unsafe { TessBaseAPIGetSourceYResolution(*handle) })
     }
 
@@ -374,7 +436,10 @@ impl TesseractAPI {
     ///
     /// Returns a pointer to the thresholded image.
     pub fn get_thresholded_image(&self) -> Result<*mut c_void> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let pix = unsafe { TessBaseAPIGetThresholdedImage(*handle) };
         if pix.is_null() {
             Err(TesseractError::NullPointerError)
@@ -393,7 +458,10 @@ impl TesseractAPI {
     ///
     /// Returns the box text for the specified page as a string.
     pub fn get_box_text(&self, page: i32) -> Result<String> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let text_ptr = unsafe { TessBaseAPIGetBoxText(*handle, page) };
         if text_ptr.is_null() {
             return Err(TesseractError::OcrError);
@@ -414,7 +482,10 @@ impl TesseractAPI {
     ///
     /// Returns the LSTM box text for the specified page as a string.
     pub fn get_lstm_box_text(&self, page: i32) -> Result<String> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let text_ptr = unsafe { TessBaseAPIGetLSTMBoxText(*handle, page) };
         if text_ptr.is_null() {
             return Err(TesseractError::OcrError);
@@ -435,7 +506,10 @@ impl TesseractAPI {
     ///
     /// Returns the word str box text for the specified page as a string.
     pub fn get_word_str_box_text(&self, page: i32) -> Result<String> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let text_ptr = unsafe { TessBaseAPIGetWordStrBoxText(*handle, page) };
         if text_ptr.is_null() {
             return Err(TesseractError::OcrError);
@@ -452,7 +526,10 @@ impl TesseractAPI {
     ///
     /// Returns the UNLV text as a string.
     pub fn get_unlv_text(&self) -> Result<String> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let text_ptr = unsafe { TessBaseAPIGetUNLVText(*handle) };
         if text_ptr.is_null() {
             return Err(TesseractError::OcrError);
@@ -469,7 +546,10 @@ impl TesseractAPI {
     ///
     /// Returns a vector of all word confidences.
     pub fn all_word_confidences(&self) -> Result<Vec<i32>> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let confidences_ptr = unsafe { TessBaseAPIAllWordConfidences(*handle) };
         if confidences_ptr.is_null() {
             return Err(TesseractError::OcrError);
@@ -495,7 +575,10 @@ impl TesseractAPI {
     ///
     /// Returns `true` if adaptation is successful, otherwise returns `false`.
     pub fn adapt_to_word_str(&self, mode: i32, wordstr: &str) -> Result<bool> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let wordstr = CString::new(wordstr).unwrap();
         let result = unsafe { TessBaseAPIAdaptToWordStr(*handle, mode, wordstr.as_ptr()) };
         Ok(result != 0)
@@ -507,7 +590,10 @@ impl TesseractAPI {
     ///
     /// Returns a tuple containing the orientation in degrees, the orientation confidence, the script name, and the script confidence.
     pub fn detect_os(&self) -> Result<(i32, f32, String, f32)> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let mut orient_deg = 0;
         let mut orient_conf = 0.0;
         let mut script_name_ptr = std::ptr::null_mut();
@@ -545,7 +631,10 @@ impl TesseractAPI {
     ///
     /// Returns `Ok(())` if setting the minimum orientation margin is successful, otherwise returns an error.
     pub fn set_min_orientation_margin(&self, margin: f64) -> Result<()> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         unsafe { TessBaseAPISetMinOrientationMargin(*handle, margin) };
         Ok(())
     }
@@ -556,7 +645,10 @@ impl TesseractAPI {
     ///
     /// Returns a `PageIterator` object.
     pub fn get_page_iterator(&self) -> Result<PageIterator> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let iterator = unsafe { TessBaseAPIGetIterator(*handle) };
         if iterator.is_null() {
             return Err(TesseractError::NullPointerError);
@@ -574,7 +666,10 @@ impl TesseractAPI {
     ///
     /// Returns `Ok(())` if setting the input image is successful, otherwise returns an error.
     pub fn set_input_image(&self, pix: *mut c_void) -> Result<()> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         unsafe { TessBaseAPISetInputImage(*handle, pix) };
         Ok(())
     }
@@ -585,7 +680,10 @@ impl TesseractAPI {
     ///
     /// Returns a pointer to the input image.
     pub fn get_input_image(&self) -> Result<*mut c_void> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let pix = unsafe { TessBaseAPIGetInputImage(*handle) };
         if pix.is_null() {
             Err(TesseractError::NullPointerError)
@@ -605,7 +703,10 @@ impl TesseractAPI {
     /// Returns `Ok(())` if setting the output name is successful, otherwise returns an error.
     pub fn set_output_name(&self, name: &str) -> Result<()> {
         let name = CString::new(name).unwrap();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         unsafe { TessBaseAPISetOutputName(*handle, name.as_ptr()) };
         Ok(())
     }
@@ -623,7 +724,10 @@ impl TesseractAPI {
     pub fn set_debug_variable(&self, name: &str, value: &str) -> Result<()> {
         let name = CString::new(name).unwrap();
         let value = CString::new(value).unwrap();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let result = unsafe { TessBaseAPISetDebugVariable(*handle, name.as_ptr(), value.as_ptr()) };
         if result != 1 {
             Err(TesseractError::SetVariableError)
@@ -643,7 +747,10 @@ impl TesseractAPI {
     /// Returns `Ok(())` if printing the variables to the file is successful, otherwise returns an error.
     pub fn print_variables_to_file(&self, filename: &str) -> Result<()> {
         let filename = CString::new(filename).unwrap();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let result = unsafe { TessBaseAPIPrintVariablesToFile(*handle, filename.as_ptr()) };
         if result != 0 {
             Err(TesseractError::IoError)
@@ -658,7 +765,10 @@ impl TesseractAPI {
     ///
     /// Returns `Ok(())` if initialization is successful, otherwise returns an error.
     pub fn init_for_analyse_page(&self) -> Result<()> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         unsafe { TessBaseAPIInitForAnalysePage(*handle) };
         Ok(())
     }
@@ -673,7 +783,10 @@ impl TesseractAPI {
     /// Returns `Ok(())` if reading the configuration file is successful, otherwise returns an error.
     pub fn read_config_file(&self, filename: &str) -> Result<()> {
         let filename = CString::new(filename).unwrap();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         unsafe { TessBaseAPIReadConfigFile(*handle, filename.as_ptr()) };
         Ok(())
     }
@@ -689,7 +802,10 @@ impl TesseractAPI {
     /// Returns `Ok(())` if reading the debug configuration file is successful, otherwise returns an error.
     pub fn read_debug_config_file(&self, filename: &str) -> Result<()> {
         let filename = CString::new(filename).unwrap();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         unsafe { TessBaseAPIReadDebugConfigFile(*handle, filename.as_ptr()) };
         Ok(())
     }
@@ -700,7 +816,10 @@ impl TesseractAPI {
     ///
     /// Returns the thresholded image scale factor as an integer.
     pub fn get_thresholded_image_scale_factor(&self) -> Result<i32> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         Ok(unsafe { TessBaseAPIGetThresholdedImageScaleFactor(*handle) })
     }
 
@@ -715,10 +834,18 @@ impl TesseractAPI {
     /// # Returns
     ///
     /// Returns the processed text as a string.
-    pub fn process_pages(&self, filename: &str, retry_config: Option<&str>, timeout_millisec: i32) -> Result<String> {
+    pub fn process_pages(
+        &self,
+        filename: &str,
+        retry_config: Option<&str>,
+        timeout_millisec: i32,
+    ) -> Result<String> {
         let filename = CString::new(filename).unwrap();
         let retry_config = retry_config.map(|s| CString::new(s).unwrap());
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let result = unsafe {
             TessBaseAPIProcessPages(
                 *handle,
@@ -744,7 +871,10 @@ impl TesseractAPI {
     ///
     /// Returns the initial languages as a string.
     pub fn get_init_languages_as_string(&self) -> Result<String> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let result = unsafe { TessBaseAPIGetInitLanguagesAsString(*handle) };
         if result.is_null() {
             Err(TesseractError::NullPointerError)
@@ -760,7 +890,10 @@ impl TesseractAPI {
     ///
     /// Returns a vector of loaded languages.
     pub fn get_loaded_languages(&self) -> Result<Vec<String>> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let vec_ptr = unsafe { TessBaseAPIGetLoadedLanguagesAsVector(*handle) };
         self.string_vec_to_rust(vec_ptr)
     }
@@ -771,7 +904,10 @@ impl TesseractAPI {
     ///
     /// Returns a vector of available languages.
     pub fn get_available_languages(&self) -> Result<Vec<String>> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let vec_ptr = unsafe { TessBaseAPIGetAvailableLanguagesAsVector(*handle) };
         self.string_vec_to_rust(vec_ptr)
     }
@@ -810,7 +946,10 @@ impl TesseractAPI {
     ///
     /// Returns `Ok(())` if clearing the adaptive classifier is successful, otherwise returns an error.
     pub fn clear_adaptive_classifier(&self) -> Result<()> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         unsafe { TessBaseAPIClearAdaptiveClassifier(*handle) };
         Ok(())
     }
@@ -821,7 +960,10 @@ impl TesseractAPI {
     ///
     /// Returns `Ok(())` if clearing the OCR engine is successful, otherwise returns an error.
     pub fn clear(&self) -> Result<()> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         unsafe { TessBaseAPIClear(*handle) };
         Ok(())
     }
@@ -832,7 +974,10 @@ impl TesseractAPI {
     ///
     /// Returns `Ok(())` if ending the OCR engine is successful, otherwise returns an error.
     pub fn end(&self) -> Result<()> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         unsafe { TessBaseAPIEnd(*handle) };
         Ok(())
     }
@@ -848,7 +993,10 @@ impl TesseractAPI {
     /// Returns `true` if the word is valid, otherwise returns `false`.
     pub fn is_valid_word(&self, word: &str) -> Result<i32> {
         let word = CString::new(word).unwrap();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         Ok(unsafe { TessBaseAPIIsValidWord(*handle, word.as_ptr()) })
     }
 
@@ -858,7 +1006,10 @@ impl TesseractAPI {
     ///
     /// Returns a tuple containing the degrees and confidence.
     pub fn get_text_direction(&self) -> Result<(i32, f32)> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let mut out_degrees = 0;
         let mut out_confidence = 0.0;
         unsafe {
@@ -884,7 +1035,10 @@ impl TesseractAPI {
         let language = CString::new(language).unwrap();
         let config_ptrs: Vec<_> = configs.iter().map(|&s| CString::new(s).unwrap()).collect();
         let config_ptr_ptrs: Vec<_> = config_ptrs.iter().map(|cs| cs.as_ptr()).collect();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let result = unsafe {
             TessBaseAPIInit1(
                 *handle,
@@ -916,8 +1070,12 @@ impl TesseractAPI {
     pub fn init_2(&self, datapath: &str, language: &str, oem: i32) -> Result<()> {
         let datapath = CString::new(datapath).unwrap();
         let language = CString::new(language).unwrap();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
-        let result = unsafe { TessBaseAPIInit2(*handle, datapath.as_ptr(), language.as_ptr(), oem) };
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
+        let result =
+            unsafe { TessBaseAPIInit2(*handle, datapath.as_ptr(), language.as_ptr(), oem) };
         if result != 0 {
             Err(TesseractError::InitError)
         } else {
@@ -942,7 +1100,10 @@ impl TesseractAPI {
         let language = CString::new(language).unwrap();
         let config_ptrs: Vec<_> = configs.iter().map(|&s| CString::new(s).unwrap()).collect();
         let config_ptr_ptrs: Vec<_> = config_ptrs.iter().map(|cs| cs.as_ptr()).collect();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let result = unsafe {
             TessBaseAPIInit4(
                 *handle,
@@ -973,11 +1134,21 @@ impl TesseractAPI {
     /// # Returns
     ///
     /// Returns `Ok(())` if initializing the OCR engine is successful, otherwise returns an error.
-    pub fn init_5(&self, data: &[u8], data_size: i32, language: &str, oem: i32, configs: &[&str]) -> Result<()> {
+    pub fn init_5(
+        &self,
+        data: &[u8],
+        data_size: i32,
+        language: &str,
+        oem: i32,
+        configs: &[&str],
+    ) -> Result<()> {
         let language = CString::new(language).unwrap();
         let config_ptrs: Vec<_> = configs.iter().map(|&s| CString::new(s).unwrap()).collect();
         let config_ptr_ptrs: Vec<_> = config_ptrs.iter().map(|cs| cs.as_ptr()).collect();
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let result = unsafe {
             TessBaseAPIInit5(
                 *handle,
@@ -1032,7 +1203,10 @@ impl TesseractAPI {
             return Err(TesseractError::InvalidImageData);
         }
 
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
 
         unsafe {
             TessBaseAPISetImage(
@@ -1057,7 +1231,10 @@ impl TesseractAPI {
     ///
     /// Returns `Ok(())` if setting the image is successful, otherwise returns an error.
     pub fn set_image_2(&self, pix: *mut c_void) -> Result<()> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         unsafe { TessBaseAPISetImage2(*handle, pix) };
         Ok(())
     }
@@ -1072,7 +1249,10 @@ impl TesseractAPI {
     ///
     /// Returns `Ok(())` if setting the source resolution is successful, otherwise returns an error.
     pub fn set_source_resolution(&self, ppi: i32) -> Result<()> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         unsafe { TessBaseAPISetSourceResolution(*handle, ppi) };
         Ok(())
     }
@@ -1090,7 +1270,10 @@ impl TesseractAPI {
     ///
     /// Returns `Ok(())` if setting the rectangle is successful, otherwise returns an error.
     pub fn set_rectangle(&self, left: i32, top: i32, width: i32, height: i32) -> Result<()> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         unsafe { TessBaseAPISetRectangle(*handle, left, top, width, height) };
         Ok(())
     }
@@ -1101,7 +1284,10 @@ impl TesseractAPI {
     ///
     /// Returns the recognized text as a String if successful, otherwise returns an error.
     pub fn get_utf8_text(&self) -> Result<String> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
 
         // Check if handle is properly initialized
         if *handle == std::ptr::null_mut() {
@@ -1130,7 +1316,10 @@ impl TesseractAPI {
     ///
     /// Returns the iterator for the OCR results as a `ResultIterator` if successful, otherwise returns an error.
     pub fn get_iterator(&self) -> Result<ResultIterator> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let iterator = unsafe { TessBaseAPIGetIterator(*handle) };
         if iterator.is_null() {
             Err(TesseractError::NullPointerError)
@@ -1145,7 +1334,10 @@ impl TesseractAPI {
     ///
     /// Returns the mutable iterator for the OCR results as a `ResultIterator` if successful, otherwise returns an error.
     pub fn get_mutable_iterator(&self) -> Result<ResultIterator> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let iterator = unsafe { TessBaseAPIGetMutableIterator(*handle) };
         if iterator.is_null() {
             Err(TesseractError::NullPointerError)
@@ -1160,7 +1352,10 @@ impl TesseractAPI {
     ///
     /// Returns the layout of the image as a `PageIterator` if successful, otherwise returns an error.
     pub fn analyse_layout(&self) -> Result<PageIterator> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let iterator = unsafe { TessBaseAPIAnalyseLayout(*handle) };
         if iterator.is_null() {
             Err(TesseractError::NullPointerError)
@@ -1191,7 +1386,10 @@ impl TesseractAPI {
 
     /// Gets a page iterator for analyzing layout and getting bounding boxes
     pub fn analyze_layout(&self) -> Result<PageIterator> {
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
         let iterator = unsafe { TessBaseAPIAnalyseLayout(*handle) };
         if iterator.is_null() {
             return Err(TesseractError::NullPointerError);
@@ -1204,7 +1402,10 @@ impl TesseractAPI {
         // Önce OCR işlemini gerçekleştir
         self.recognize()?;
 
-        let handle = self.handle.lock().map_err(|_| TesseractError::MutexLockError)?;
+        let handle = self
+            .handle
+            .lock()
+            .map_err(|_| TesseractError::MutexLockError)?;
 
         // İki iterator'ı da al
         let page_iter = unsafe { TessBaseAPIAnalyseLayout(*handle) };
@@ -1220,7 +1421,10 @@ impl TesseractAPI {
             return Err(TesseractError::NullPointerError);
         }
 
-        Ok((PageIterator::new(page_iter), ResultIterator::new(result_iter)))
+        Ok((
+            PageIterator::new(page_iter),
+            ResultIterator::new(result_iter),
+        ))
     }
 }
 
@@ -1268,7 +1472,11 @@ impl Clone for TesseractAPI {
 #[link(name = "tesseract")]
 unsafe extern "C" {
     fn TessBaseAPIMeanTextConf(handle: *mut c_void) -> c_int;
-    fn TessBaseAPISetVariable(handle: *mut c_void, name: *const c_char, value: *const c_char) -> c_int;
+    fn TessBaseAPISetVariable(
+        handle: *mut c_void,
+        name: *const c_char,
+        value: *const c_char,
+    ) -> c_int;
     fn TessBaseAPIGetStringVariable(handle: *mut c_void, name: *const c_char) -> *const c_char;
     fn TessBaseAPIGetIntVariable(handle: *mut c_void, name: *const c_char) -> c_int;
     fn TessBaseAPIGetBoolVariable(handle: *mut c_void, name: *const c_char) -> c_int;
@@ -1285,7 +1493,8 @@ unsafe extern "C" {
     fn TessBaseAPIGetWordStrBoxText(handle: *mut c_void, page: c_int) -> *mut c_char;
     fn TessBaseAPIGetUNLVText(handle: *mut c_void) -> *mut c_char;
     fn TessBaseAPIAllWordConfidences(handle: *mut c_void) -> *const c_int;
-    fn TessBaseAPIAdaptToWordStr(handle: *mut c_void, mode: c_int, wordstr: *const c_char) -> c_int;
+    fn TessBaseAPIAdaptToWordStr(handle: *mut c_void, mode: c_int, wordstr: *const c_char)
+    -> c_int;
     fn TessBaseAPIDetectOrientationScript(
         handle: *mut c_void,
         orient_deg: *mut c_int,
@@ -1299,7 +1508,11 @@ unsafe extern "C" {
     fn TessBaseAPISetInputImage(handle: *mut c_void, pix: *mut c_void);
     fn TessBaseAPIGetInputImage(handle: *mut c_void) -> *mut c_void;
     fn TessBaseAPISetOutputName(handle: *mut c_void, name: *const c_char);
-    fn TessBaseAPISetDebugVariable(handle: *mut c_void, name: *const c_char, value: *const c_char) -> c_int;
+    fn TessBaseAPISetDebugVariable(
+        handle: *mut c_void,
+        name: *const c_char,
+        value: *const c_char,
+    ) -> c_int;
     fn TessBaseAPIPrintVariablesToFile(handle: *mut c_void, filename: *const c_char) -> c_int;
     fn TessBaseAPIInitForAnalysePage(handle: *mut c_void);
     fn TessBaseAPIReadConfigFile(handle: *mut c_void, filename: *const c_char);
@@ -1315,7 +1528,11 @@ unsafe extern "C" {
     fn TessVersion() -> *const c_char;
     fn TessBaseAPICreate() -> *mut c_void;
     fn TessBaseAPIDelete(handle: *mut c_void);
-    fn TessBaseAPIInit3(handle: *mut c_void, datapath: *const c_char, language: *const c_char) -> c_int;
+    fn TessBaseAPIInit3(
+        handle: *mut c_void,
+        datapath: *const c_char,
+        language: *const c_char,
+    ) -> c_int;
     fn TessBaseAPIInit1(
         handle: *mut c_void,
         datapath: *const c_char,
@@ -1324,7 +1541,12 @@ unsafe extern "C" {
         configs: *const *const c_char,
         configs_size: c_int,
     ) -> c_int;
-    fn TessBaseAPIInit2(handle: *mut c_void, datapath: *const c_char, language: *const c_char, oem: c_int) -> c_int;
+    fn TessBaseAPIInit2(
+        handle: *mut c_void,
+        datapath: *const c_char,
+        language: *const c_char,
+        oem: c_int,
+    ) -> c_int;
     fn TessBaseAPIInit4(
         handle: *mut c_void,
         datapath: *const c_char,
@@ -1352,12 +1574,22 @@ unsafe extern "C" {
     );
     fn TessBaseAPISetImage2(handle: *mut c_void, pix: *mut c_void);
     fn TessBaseAPISetSourceResolution(handle: *mut c_void, ppi: c_int);
-    fn TessBaseAPISetRectangle(handle: *mut c_void, left: c_int, top: c_int, width: c_int, height: c_int);
+    fn TessBaseAPISetRectangle(
+        handle: *mut c_void,
+        left: c_int,
+        top: c_int,
+        width: c_int,
+        height: c_int,
+    );
     fn TessBaseAPIGetUTF8Text(handle: *mut c_void) -> *mut c_char;
     fn TessBaseAPIClear(handle: *mut c_void);
     fn TessBaseAPIEnd(handle: *mut c_void);
     fn TessBaseAPIIsValidWord(handle: *mut c_void, word: *const c_char) -> c_int;
-    fn TessBaseAPIGetTextDirection(handle: *mut c_void, out_degrees: *mut c_int, out_confidence: *mut c_float);
+    fn TessBaseAPIGetTextDirection(
+        handle: *mut c_void,
+        out_degrees: *mut c_int,
+        out_confidence: *mut c_float,
+    );
     pub fn TessDeleteText(text: *mut c_char);
 
     fn TessBaseAPIGetUnichar(handle: *mut c_void, unichar_id: c_int) -> *const c_char;

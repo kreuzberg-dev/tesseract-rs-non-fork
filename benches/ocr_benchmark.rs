@@ -13,7 +13,9 @@ fn get_default_tessdata_dir() -> PathBuf {
             .join("tessdata")
     } else if cfg!(target_os = "linux") {
         let home_dir = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
-        PathBuf::from(home_dir).join(".tesseract-rs").join("tessdata")
+        PathBuf::from(home_dir)
+            .join(".tesseract-rs")
+            .join("tessdata")
     } else if cfg!(target_os = "windows") {
         PathBuf::from(std::env::var("APPDATA").unwrap_or_else(|_| "C:\\temp".to_string()))
             .join("tesseract-rs")
@@ -71,7 +73,8 @@ fn benchmark_with_variables(c: &mut Criterion) {
         let image_data = vec![255u8; width * height];
 
         b.iter(|| {
-            api.set_variable("tessedit_char_whitelist", "0123456789").unwrap();
+            api.set_variable("tessedit_char_whitelist", "0123456789")
+                .unwrap();
             api.set_variable("tessedit_pageseg_mode", "10").unwrap();
 
             api.set_image(
