@@ -26,7 +26,7 @@ libc = "0.2.177"
 thiserror = "2.0.17"
 
 [dev-dependencies]
-image = "0.25.6"
+image = "0.25.8"
 imageproc = "0.25.0"
 criterion = { version = "0.7.0", features = ["html_reports"] }
 
