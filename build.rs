@@ -510,6 +510,7 @@ mod build_tesseract {
         let out_path = install_dir.join("lib").join(&lib_name);
 
         // For Windows, check multiple possible library names
+        // Include both release and debug variants (debug has 'd' suffix)
         let possible_lib_names: Vec<String> = if cfg!(target_os = "windows") {
             match name {
                 "leptonica" => vec![
@@ -517,6 +518,12 @@ mod build_tesseract {
                     "libleptonica.lib".to_string(),
                     "leptonica-static.lib".to_string(),
                     "leptonica-1.84.1.lib".to_string(),
+                    "leptonica-1.86.0.lib".to_string(),
+                    // Debug variants
+                    "leptonicad.lib".to_string(),
+                    "libleptonica_d.lib".to_string(),
+                    "leptonica-1.84.1d.lib".to_string(),
+                    "leptonica-1.86.0d.lib".to_string(),
                 ],
                 "tesseract" => vec![
                     "tesseract.lib".to_string(),
@@ -524,6 +531,13 @@ mod build_tesseract {
                     "tesseract-static.lib".to_string(),
                     "tesseract53.lib".to_string(),
                     "tesseract54.lib".to_string(),
+                    "tesseract55.lib".to_string(),
+                    // Debug variants
+                    "tesseractd.lib".to_string(),
+                    "libtesseract_d.lib".to_string(),
+                    "tesseract53d.lib".to_string(),
+                    "tesseract54d.lib".to_string(),
+                    "tesseract55d.lib".to_string(),
                 ],
                 _ => vec![format!("{}.lib", name)],
             }
